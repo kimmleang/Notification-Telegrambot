@@ -1,74 +1,68 @@
 <?php
 
 namespace App\Http\Controllers;
-
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 
 class ProductController extends Controller
 {
     public function index()
     {
-        $products = Product::all();
-        return view('products.index', compact('products'));
+        return Product::all();
     }
 
-    public function create()
+    private function sendTelegramNotification($product)
     {
-        return view('products.create');
+        $chatId = env('TELEGRAM_CHAT_ID'); 
+        $botToken = env('TELEGRAM_BOT_TOKEN'); 
+        $message = "📦 New Product Added to Stock:\n\n" .
+                "Name: {$product->name}\n" .
+                "Price: {$product->price}\n" .
+                "Quantity: {$product->quantity}";
+
+        // Send notification to Telegram API
+        Http::withOptions(['verify' => false])->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+            'chat_id' => $chatId,
+            'text' => $message,
+        ]);
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'description' => 'required|string',
-            'quantity' => 'required|integer',
+            'description' => 'nullable|string',
             'price' => 'required|numeric',
+            'quantity' => 'required|integer',
         ]);
 
-        $product = new Product();
-        $product->name = $request->name;
-        $product->description = $request->description;
-        $product->quantity = $request->quantity;
-        $product->price = $request->price;
-        $product->save();
+        $product = Product::create($validated);
 
-        // Send notification to Telegram bot
         $this->sendTelegramNotification($product);
 
-        return redirect()->route('products.index')->with('success', 'Product added successfully!');
+        return response()->json($product, 201);
     }
 
     public function show($id)
     {
-        $product = Product::findOrFail($id);
-        return view('products.show', compact('product'));
-    }
-
-    public function edit($id)
-    {
-        $product = Product::findOrFail($id);
-        return view('products.edit', compact('product'));
+        return Product::findOrFail($id);
     }
 
     public function update(Request $request, $id)
     {
-        $request->validate([
+        $product = Product::findOrFail($id);
+
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'description' => 'required|string',
-            'quantity' => 'required|integer',
+            'description' => 'nullable|string',
             'price' => 'required|numeric',
+            'quantity' => 'required|integer',
         ]);
 
-        $product = Product::findOrFail($id);
-        $product->name = $request->name;
-        $product->description = $request->description;
-        $product->quantity = $request->quantity;
-        $product->price = $request->price;
-        $product->save();
+        $product->update($validated);
 
-        return redirect()->route('products.index')->with('success', 'Product updated successfully!');
+        return response()->json($product, 200);
     }
 
     public function destroy($id)
@@ -76,25 +70,9 @@ class ProductController extends Controller
         $product = Product::findOrFail($id);
         $product->delete();
 
-        return redirect()->route('products.index')->with('success', 'Product deleted successfully!');
+        return response()->json(null, 204);
     }
 
-    private function sendTelegramNotification($product)
-    {
-        $chatId = 'e'; // Replace with the Telegram chat ID where the message will be sent
-        $telegramApiUrl = "https://api.telegram.org/botYOUR_BOT_TOKEN/sendMessage";
 
-        $message = "A new product has been added to the stock:\n" .
-                   "Product Name: {$product->name}\n" .
-                   "Quantity: {$product->quantity}\n" .
-                   "Price: {$product->price}";
 
-        $params = [
-            'chat_id' => $chatId,
-            'text' => $message,
-        ];
-
-        // Send the request to the Telegram API
-        file_get_contents($telegramApiUrl . '?' . http_build_query($params));
-    }
 }
