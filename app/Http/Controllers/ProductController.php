@@ -7,16 +7,28 @@ use Illuminate\Support\Facades\Http;
 
 class ProductController extends Controller
 {
-    public function index()
+    public function list(Request $request)
     {
-        return Product::all();
+        $query = Product::query();
+    
+        if ($request->has('search')) {
+            $search = $request->input('search');
+            $query->where('name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+        }
+        
+    
+        $products = $query->paginate(10);
+    
+        return response()->json($products);
+    
     }
 
     private function sendTelegramNotification($product)
     {
         $chatId = env('TELEGRAM_CHAT_ID'); 
         $botToken = env('TELEGRAM_BOT_TOKEN'); 
-        $message = "📦 New Product Added to Stock:\n\n" .
+        $message = "📦 Add new product🙏\n\n" .
                 "Name: {$product->name}\n" .
                 "Price: {$product->price}\n" .
                 "Quantity: {$product->quantity}";
