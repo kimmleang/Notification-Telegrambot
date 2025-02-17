@@ -16,7 +16,6 @@ class ProductController extends Controller
             $query->where('name', 'like', "%{$search}%")
                   ->orWhere('description', 'like', "%{$search}%");
         }
-        
     
         $products = $query->paginate(10);
     
