@@ -3,7 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
-
+use App\Http\Controllers\DashboardController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -40,4 +40,5 @@ Route::prefix('stock')->group(function () {
 
 Route::prefix('dashboard')->group(function () {
     Route::get('/statistics', [DashboardController::class, 'productStatistics']);
+    Route::get('/stock',  [DashboardController::class, 'stockStatistics']);
 });
